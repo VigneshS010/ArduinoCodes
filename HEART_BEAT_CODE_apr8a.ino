@@ -1,169 +1,66 @@
-#include <AFMotor.h>
+#define USE_ARDUINO_INTERRUPTS true  // Set-up low-level interrupts for most acurate BPM math.
+#include <PulseSensorPlayground.h>   // Includes the PulseSensorPlayground Library.
 
-//initial motors pin
-AF_DCMotor motor1(1, MOTOR12_1KHZ);
-AF_DCMotor motor2(2, MOTOR12_1KHZ);
-AF_DCMotor motor3(3, MOTOR34_1KHZ);
-AF_DCMotor motor4(4, MOTOR34_1KHZ);
+//  Variables
+const int PulseWire = A0;  // PulseSensor PURPLE WIRE connected to ANALOG PIN 0
+int Threshold = 550;       // Determine which Signal to "count as a beat" and which to ignore.
+                           // Use the "Gettting Started Project" to fine-tune Threshold Value beyond default setting.
+                           // Otherwise leave the default "550" value.
 
-int val;
-int Speeed = 255;
+PulseSensorPlayground pulseSensor;
 
-void setup()
-{
-  Serial.begin(9600);  //Set the baud rate to your Bluetooth module.
-}
-void loop(){
-  if(Serial.available() > 0){
-    val = Serial.read();
-    
-    Stop(); //initialize with motors stoped
-    
-          if (val == 'F'){
-          forward();
-          }
+#include <LiquidCrystal_I2C.h>
 
-          if (val == 'B'){
-          back();
-          }
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-          if (val == 'L'){
-          left();
-          }
+int bat = 2;
+int buzzer = 3;
 
-          if (val == 'R'){
-          right();
-          }
-          if (val == 'I'){
-          topright();
-          }
+int myBPM;
 
-          if (val == 'J'){
-          topleft();
-          }
+void setup() {
+  Serial.begin(9600);
+  lcd.init();
+  lcd.clear();
+  lcd.backlight();
+  pinMode(bat, OUTPUT);
+  pinMode(buzzer, OUTPUT);
 
-          if (val == 'K'){
-          bottomright();
-          }
+  pulseSensor.analogInput(PulseWire);
+  pulseSensor.setThreshold(Threshold);
 
-          if (val == 'M'){
-          bottomleft();
-          }
-          if (val == 'T'){
-          Stop();
-          }
+  if (pulseSensor.begin()) {
+    Serial.println("We created a pulseSensor Object !");  //This prints one time at Arduino power-up,  or on Arduino reset.
   }
 }
-         
-
-          
 
 
+void loop() {
 
-void forward()
-{
-  motor1.setSpeed(Speeed); //Define maximum velocity
-  motor1.run(FORWARD); //rotate the motor clockwise
-  motor2.setSpeed(Speeed); //Define maximum velocity
-  motor2.run(FORWARD); //rotate the motor clockwise
-  motor3.setSpeed(Speeed);//Define maximum velocity
-  motor3.run(FORWARD); //rotate the motor clockwise
-  motor4.setSpeed(Speeed);//Define maximum velocity
-  motor4.run(FORWARD); //rotate the motor clockwise
-}
+  if (pulseSensor.sawStartOfBeat()) {              // Constantly test to see if "a beat happened".
+    myBPM = pulseSensor.getBeatsPerMinute();       // Calls function on our pulseSensor object that returns BPM as an "int".
+                                                   // "myBPM" hold this BPM value now.
+    Serial.println("♥  A HeartBeat Happened ! ");  // If test is "true", print a message "a heartbeat happened".
+    Serial.print("BPM: ");                         // Print phrase "BPM: "
+    Serial.println(myBPM);                         // Print the value inside of myBPM.
+  }
 
-void back()
-{
-  motor1.setSpeed(Speeed); //Define maximum velocity
-  motor1.run(BACKWARD); //rotate the motor anti-clockwise
-  motor2.setSpeed(Speeed); //Define maximum velocity
-  motor2.run(BACKWARD); //rotate the motor anti-clockwise
-  motor3.setSpeed(Speeed); //Define maximum velocity
-  motor3.run(BACKWARD); //rotate the motor anti-clockwise
-  motor4.setSpeed(Speeed); //Define maximum velocity
-  motor4.run(BACKWARD); //rotate the motor anti-clockwise
-}
+  lcd.setCursor(0, 0);
+  lcd.print("BPM: ");
+  lcd.print(myBPM);
+  lcd.print("    ");
 
-void left()
-{
-  motor1.setSpeed(Speeed); //Define maximum velocity
-  motor1.run(BACKWARD); //rotate the motor anti-clockwise
-  motor2.setSpeed(Speeed); //Define maximum velocity
-  motor2.run(BACKWARD); //rotate the motor anti-clockwise
-  motor3.setSpeed(Speeed); //Define maximum velocity
-  motor3.run(FORWARD);  //rotate the motor clockwise
-  motor4.setSpeed(Speeed); //Define maximum velocity
-  motor4.run(FORWARD);  //rotate the motor clockwise
-}
+  if (myBPM != 0 && myBPM < 60) {
+    lcd.setCursor(0, 1);
+    lcd.print("    Abnormal    ");
+    digitalWrite(bat, HIGH);
+    digitalWrite(buzzer, HIGH);
+  } else {
+    lcd.setCursor(0, 1);
+    lcd.print("     NORMAL     ");
+    digitalWrite(bat, LOW);
+    digitalWrite(buzzer, LOW);
+  }
 
-void right()
-{
-  motor1.setSpeed(Speeed); //Define maximum velocity
-  motor1.run(FORWARD); //rotate the motor clockwise
-  motor2.setSpeed(Speeed); //Define maximum velocity
-  motor2.run(FORWARD); //rotate the motor clockwise
-  motor3.setSpeed(Speeed); //Define maximum velocity
-  motor3.run(BACKWARD); //rotate the motor anti-clockwise
-  motor4.setSpeed(Speeed); //Define maximum velocity
-  motor4.run(BACKWARD); //rotate the motor anti-clockwise
-}
-
-void topleft(){
-  motor1.setSpeed(Speeed); //Define maximum velocity
-  motor1.run(FORWARD); //rotate the motor clockwise
-  motor2.setSpeed(Speeed); //Define maximum velocity
-  motor2.run(FORWARD); //rotate the motor clockwise
-  motor3.setSpeed(Speeed/3.1);//Define maximum velocity
-  motor3.run(FORWARD); //rotate the motor clockwise
-  motor4.setSpeed(Speeed/3.1);//Define maximum velocity
-  motor4.run(FORWARD); //rotate the motor clockwise
-}
-
-void topright()
-{
-  motor1.setSpeed(Speeed/3.1); //Define maximum velocity
-  motor1.run(FORWARD); //rotate the motor clockwise
-  motor2.setSpeed(Speeed/3.1); //Define maximum velocity
-  motor2.run(FORWARD); //rotate the motor clockwise
-  motor3.setSpeed(Speeed);//Define maximum velocity
-  motor3.run(FORWARD); //rotate the motor clockwise
-  motor4.setSpeed(Speeed);//Define maximum velocity
-  motor4.run(FORWARD); //rotate the motor clockwise
-}
-
-void bottomleft()
-{
-  motor1.setSpeed(Speeed); //Define maximum velocity
-  motor1.run(BACKWARD); //rotate the motor anti-clockwise
-  motor2.setSpeed(Speeed); //Define maximum velocity
-  motor2.run(BACKWARD); //rotate the motor anti-clockwise
-  motor3.setSpeed(Speeed/3.1); //Define maximum velocity
-  motor3.run(BACKWARD); //rotate the motor anti-clockwise
-  motor4.setSpeed(Speeed/3.1); //Define maximum velocity
-  motor4.run(BACKWARD); //rotate the motor anti-clockwise
-}
-
-void bottomright()
-{
-  motor1.setSpeed(Speeed/3.1); //Define maximum velocity
-  motor1.run(BACKWARD); //rotate the motor anti-clockwise
-  motor2.setSpeed(Speeed/3.1); //Define maximum velocity
-  motor2.run(BACKWARD); //rotate the motor anti-clockwise
-  motor3.setSpeed(Speeed); //Define maximum velocity
-  motor3.run(BACKWARD); //rotate the motor anti-clockwise
-  motor4.setSpeed(Speeed); //Define maximum velocity
-  motor4.run(BACKWARD); //rotate the motor anti-clockwise
-}
-
-
-void Stop()
-{
-  motor1.setSpeed(0); //Define minimum velocity
-  motor1.run(RELEASE); //stop the motor when release the button
-  motor2.setSpeed(0); //Define minimum velocity
-  motor2.run(RELEASE); //rotate the motor clockwise
-  motor3.setSpeed(0); //Define minimum velocity
-  motor3.run(RELEASE); //stop the motor when release the button
-  motor4.setSpeed(0); //Define minimum velocity
-  motor4.run(RELEASE); //stop the motor when release the button
+  delay(20);  // considered best practice in a simple sketch.
 }
